@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">	
+<head>
+	<meta charset="utf-8" />		
+	<title>HTML5 Lear Game</title>
+	<link href="http://fonts.googleapis.com/css?family=VT323" rel="stylesheet" />
+<style>
+body {	
+	padding:0;
+	margin:0;
+	background: #666;
+	}
+canvas {
+	display:block;
+	margin:30px auto 0;
+	border:0px dashed #ccc;
+	background: #000;
+	}
+</style>
+<script>
+var canvas,			
+    ctx,
+    width = 600,
+    height = 600,
+    enemyTotal = 5,
+    enemies = [],
+    enemy_x=Math.floor((Math.random()*500)+60),
+    enemy_y = -45,
+    enemy_w = 50,
+    enemy_h = 60,
+    speed = 8,
+	enemy,
+	
+    rightKey = false,
+    leftKey = false,
+    upKey = false,
+    downKey = false,
+
+	lear,
+	lear_x = (width / 2) - 25,
+	lear_y = height - 75, 
+	lear_w = 50, 
+	lear_h = 68,
+	
+	tearTotal=10,
+	tears=[],
+
+	score= 0,
+	alive= true,
+	lives= 3,
+	castle,
+	castleX=0,
+	castleY=0, 
+	castleY2=(-600),
+	gameStarted=false,
+	
+	kingdomStability=400;
+	
+	
+	
+ for (var i = 0; i < enemyTotal; i++) {
+  wait(Math.floor(Math.random()*500)+250);
+  enemies.push([enemy_x, enemy_y, enemy_w, enemy_h, speed]);
+  enemy_x = enemy_w + Math.floor((Math.random()*500));
+}
+	
+function clearCanvas() {
+	ctx.clearRect(0,0,width,height);
+}
+	
+function drawEnemies() {
+  for (var i = 0; i < enemies.length; i++) {
+    ctx.drawImage(enemy, enemies[i][0], enemies[i][1]);
+  }
+}
+
+function drawLear() {
+  if (rightKey) lear_x += 10;
+  else if (leftKey) lear_x -= 10;
+  if (upKey) lear_y -= 10;
+  else if (downKey) lear_y += 10;
+  if (lear_x <= 0) lear_x = 0;
+  if ((lear_x + lear_w) >= width) lear_x = width - lear_w;
+  if (lear_y <= 0) lear_y = 0;
+  if ((lear_y + lear_h) >= height) lear_y = height - lear_h;
+  ctx.drawImage(lear, lear_x, lear_y);
+}
+
+function moveEnemies() {
+  for (var i = 0; i < enemies.length; i++) {
+    if (enemies[i][1] < height) {
+      enemies[i][1] += enemies[i][4];
+    } else if (enemies[i][1] > height - 1) {
+      enemies[i][1] = -45;
+	  checkKingdom();
+    }
+  }
+}
+	
+function drawTear() {
+  if (tears.length)
+    for (var i = 0; i < tears.length; i++) {
+      ctx.fillStyle = '#30a9e1';
+      ctx.fillRect(tears[i][0],tears[i][1],tears[i][2],tears[i][3],tears[i][4],tears[i][5],tears[i][6],tears[i][7],tears[i][8],tears[i][9],tears[i][10]);
+    }
+}
+
+function moveTear() {
+  for (var i = 0; i < tears.length; i++) {
+    if (tears[i][1] > -11) {
+      tears[i][1] -= 10;
+    } else if (tears[i][1] < -10) {
+      tears.splice(i, 1);
+    }
+  }
+}
+
+function hitTest() {
+  var remove = false;
+  for (var i = 0; i < tears.length; i++) {
+    for (var j = 0; j < enemies.length; j++) {
+      if (tears[i][1] <= (enemies[j][1] + enemies[j][3]) && tears[i][0] >= enemies[j][0] && tears[i][0] <= (enemies[j][0] + enemies[j][2])) {
+        remove = true;
+        enemies.splice(j, 1);
+		score+=10;
+        enemies.push([(Math.random() * 500) + 50, -45, enemy_w, enemy_h, speed]);
+      }
+    }
+    if (remove == true) {
+      tears.splice(i, 1);
+      remove = false;
+    }
+  }
+}
+	
+function learCollisionTest() {
+  var lear_xw = lear_x + lear_w,
+      lear_yh = lear_y + lear_h;
+  for (var i = 0; i < enemies.length; i++) {
+    if (lear_x > enemies[i][0] && lear_x < enemies[i][0] + enemy_w && lear_y > enemies[i][1] && lear_y < enemies[i][1] + enemy_h) {
+		checkLives();
+    }
+    if (lear_xw < enemies[i][0] + enemy_w && lear_xw > enemies[i][0] && lear_y > enemies[i][1] && lear_y < enemies[i][1] + enemy_h) {
+		checkLives();
+    }
+    if (lear_yh > enemies[i][1] && lear_yh < enemies[i][1] + enemy_h && lear_x > enemies[i][0] && lear_x < enemies[i][0] + enemy_w) {
+		checkLives();
+    }
+    if (lear_yh > enemies[i][1] && lear_yh < enemies[i][1] + enemy_h && lear_xw < enemies[i][0] + enemy_w && lear_xw > enemies[i][0]) {
+		checkLives();
+    }
+  }
+}
+	
+function checkLives(){
+	lives-=1;
+	if(lives>0){
+		reset();
+	}
+	else if (lives<=0){
+		alive=false;
+		lives=0;
+	}
+}
+
+function checkKingdom(){
+	kingdomStability-=10;
+	if(kingdomStability<=0){
+		kingdomStability=0;
+		alive=false;
+	}
+	else alive=true;
+}
+	
+function reset(){
+	wait(1000);
+	var enemy_reset_x=50;
+		lear_x = (width / 2) - 25, lear_y = height - 75, lear_w = 50, lear_h = 57;
+	for (var i = 0; i < enemies.length; i++) {
+   		enemies[i][0] = enemy_reset_x;
+   		enemies[i][1] = -45;
+   		enemy_reset_x = enemy_w + Math.floor((Math.random()*500));
+	}
+}
+	
+function continueButton(e) {
+ 	var cursorPos = getCursorPos(e);
+ 	if (cursorPos.x > (width / 2) - 100 && cursorPos.x < (width / 2) + 100 && cursorPos.y > (height / 2) && cursorPos.y < (height / 2) + 40) {
+   		alive = true;
+   		lives = 3;
+   		score=0;
+		reset();
+		kingdomStability=400;
+   		canvas.removeEventListener('click', continueButton, false);
+ 	}
+}
+	
+function cursorPosition(x,y) {
+  this.x = x;
+  this.y = y;
+}
+	
+function getCursorPos(e) {
+  var x;
+  var y;
+  if (e.pageX || e.pageY) {
+    x = e.pageX;
+    y = e.pageY;
+  } else {
+    x = e.clientX + document.body.scrollLeft + document.documentElement.scrollLeft;
+    y = e.clientY + document.body.scrollTop + document.documentElement.scrollTop;
+  }
+  x -= canvas.offsetLeft;
+  y -= canvas.offsetTop;
+  var cursorPos = new cursorPosition(x, y);
+  return cursorPos;
+}
+	
+function scoreTotal(){
+	ctx.font='bold 30px Arial'
+	ctx.fillStyle= '#fff';
+	ctx.fillText('Score: ', 20, 65);
+	ctx.fillText(score, 124, 65);
+	ctx.fillText('Lives: ',20,35);
+	ctx.fillText(lives,124,35);
+	ctx.fillText('Kingdom: ',20,95);
+	ctx.fillText(kingdomStability,168,95);
+	if (!gameStarted) {
+		ctx.fillStyle= '#ff0000';
+		ctx.fillRect((width/2)-122,(height/2)-102,250,90)
+  		ctx.font = 'bold 80px Arial';
+		ctx.fillStyle='#fff';
+  		ctx.fillText('LEAR', (width / 2) - 106, (height / 2)-29);
+  		ctx.font = 'bold 30px Arial';
+  		ctx.fillText('Click to Play', (width / 2) - 95, (height / 2) + 30);
+  		ctx.fillText('Use arrow keys to move', (width / 2) - 170, (height / 2) + 60);
+  		ctx.fillText('Use SPACE to shoot', (width / 2) - 150, (height / 2) + 95);
+	}
+	if(!alive) {
+		ctx.font='bold 50px Arial'
+		ctx.fillText('Game Over!',160, height/2-80);
+		ctx.font='bold 30px Arial';
+		ctx.fillRect((width/2)-100, (height/2),200,40);
+		ctx.fillStyle= '#ff0000';
+		ctx.fillText('"Nothing will come of nothing"',85, (height/2)-20);
+		ctx.fillStyle='#000';
+		ctx.fillText('PLAY AGAIN', 208, height/2+30);
+		canvas.addEventListener('click', continueButton,false);
+	}
+}
+	
+function drawCastle() {
+  ctx.drawImage(castle,castleX,castleY);
+  ctx.drawImage(castle,castleX,castleY2);
+  if (castleY > 600) {
+    castleY = -599;
+  }
+  if (castleY2 > 600) {
+    castleY2 = -599;
+  }
+  castleY += 1;
+  castleY2 += 1;
+}
+
+function init() {
+ 	canvas = document.getElementById('canvas');
+	ctx = canvas.getContext('2d');
+	enemy=new Image();	enemy.src='https://cdn.pbrd.co/images/6PtJi8RmU.png';
+	lear=new Image();	lear.src='https://cdn.pbrd.co/images/6PuLXZPBS.png'
+	castle=new Image();
+	castle.src='https://cdn.pbrd.co/images/6DzSJSAbq.jpg';
+ 	document.addEventListener('keydown', keyDown, false);
+ 	document.addEventListener('keyup', keyUp, false);
+		canvas.addEventListener('click', gameStart, false);
+	gameLoop();
+	}
+	
+function gameStart() {
+  gameStarted = true;
+  canvas.removeEventListener('click', gameStart, false);
+}
+
+function gameLoop() {
+  clearCanvas();
+  drawCastle();
+  if (alive && gameStarted && lives > 0 && kingdomStability>0){
+  drawLear();
+  hitTest();
+  learCollisionTest();
+  moveTear();
+  moveEnemies();
+  drawEnemies();
+  drawTear();
+  }
+  scoreTotal();
+  game = setTimeout(gameLoop, 1000/30)
+}
+
+function keyDown(e) {
+  	if (e.keyCode == 39) rightKey = true;
+  	else if (e.keyCode == 37) leftKey = true;
+  	if (e.keyCode == 38) upKey = true;
+  	else if (e.keyCode == 40) downKey = true;
+	if (e.keyCode == 32 && tears.length <= tearTotal) tears.push([lear_x + 25, lear_y - 20, 4, 20]);
+}
+
+function keyUp(e) {
+  if (e.keyCode == 39) rightKey = false;
+  else if (e.keyCode == 37) leftKey = false;
+  if (e.keyCode == 38) upKey = false;
+  else if (e.keyCode == 40) downKey = false;
+}
+	
+function wait(ms){
+	var start=new Date().getTime();
+	var end = start;
+   while(end < start + ms) {
+     end = new Date().getTime();
+  }
+}
+
+function shipLives(){}
+function difficulty(){}
+function setMap(){}
+function setCharacter(){}
+
+window.onload = init;
+</script>
+</head>
+
+<body>
+	<canvas id="canvas" width="600" height="600"></canvas>
+</body>
+</html>
